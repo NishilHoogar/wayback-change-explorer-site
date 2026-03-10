@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nishil Hoogar – GSoC Wayback Change Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Indie+Flower&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --cream: #f5f3f0;
+            --dark-cream: #ede9e4;
+            --paper-light: #fdfcfb;
+            --ink: #1a1a1a;
+            --blue-line: #4a90e2;
+            --red-margin: #d32f2f;
+            --accent-blue: #2c5aa0;
+            --accent-green: #3d5a3d;
+            --accent-orange: #d4845c;
+            --light-gray: #a0a0a0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Patrick Hand', cursive;
+            background: linear-gradient(135deg, #f5f3f0 0%, #faf8f5 50%, #ede9e4 100%);
+            color: var(--ink);
+            line-height: 1.45;
+            min-height: 100vh;
+            padding: 30px 15px;
+        }
+
+        /* ===== NOTEBOOK PAPER EFFECT ===== */
+        .notebook-page {
+            max-width: 920px;
+            margin: 0 auto;
+            background: 
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0,
+                    transparent 30px,
+                    rgba(74, 144, 226, 0.2) 30px, /* Fainter line color */
+                    rgba(74, 144, 226, 0.2) 31px
+                ),
+                linear-gradient(90deg, var(--red-margin) 0, var(--red-margin) 38px, transparent 38px),
+                linear-gradient(to bottom, #fdfcfb 0%, #f5f3f0 50%, #f8f6f3 100%);
+            background-attachment: local, local, fixed;
+            background-position: 0 0, 0 0, 0 0;
+            padding: 55px 75px 70px 85px;
+            position: relative;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12),
+                        inset 0 1px 0 rgba(0, 0, 0, 0.03),
+                        inset -1px 0 0 rgba(0, 0, 0, 0.02);
+            border-radius: 1px;
+            line-height: 31px;
+            overflow: hidden;
+        }
+
+        .notebook-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(100, 150, 200, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(212, 132, 92, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .notebook-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== TITLE SECTION ===== */
+        .title-section {
+            margin-bottom: 50px;
+            animation: fadeInDown 0.9s ease-out;
+        }
+
+        .main-title {
+            font-family: 'Caveat', cursive;
+            font-size: 68px;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+            transform: rotate(-0.7deg);
+            line-height: 1.1;
+        }
+
+        .subtitle-meta {
+            font-family: 'Indie Flower', cursive;
+            font-size: 20px;
+            color: var(--accent-blue);
+            font-weight: 600;
+            margin-bottom: 3px;
+            transform: rotate(0.2deg);
+        }
+
+        .title-description {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 16px;
+            color: var(--ink);
+            margin-top: 18px;
+            line-height: 1.7;
+            font-style: italic;
+            max-width: 700px;
+            border-left: 3px dotted var(--accent-green);
+            padding-left: 15px;
+        }
+
+        /* ===== SECTION HEADERS ===== */
+        h2 {
+            font-family: 'Caveat', cursive;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--ink);
+            margin-top: 55px;
+            margin-bottom: 18px;
+            position: relative;
+            display: inline-block;
+            transform: rotate(-0.3deg);
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent-green);
+            transform: rotate(-0.5deg);
+        }
+
+        h3 {
+            font-family: 'Caveat', cursive;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+
+        /* ===== SECTIONS ===== */
+        .section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out forwards;
+            opacity: 0;
+        }
+
+        .section:nth-of-type(1) { animation-delay: 0.1s; }
+        .section:nth-of-type(2) { animation-delay: 0.2s; }
+        .section:nth-of-type(3) { animation-delay: 0.3s; }
+        .section:nth-of-type(4) { animation-delay: 0.4s; }
+        .section:nth-of-type(5) { animation-delay: 0.5s; }
+        .section:nth-of-type(6) { animation-delay: 0.6s; }
+        .section:nth-of-type(7) { animation-delay: 0.7s; }
+        .section:nth-of-type(8) { animation-delay: 0.8s; }
+
+        /* ===== CONTENT BLOCKS ===== */
+        .paragraph {
+            font-size: 17px;
+            margin-bottom: 14px;
+            line-height: 1.85;
+            color: var(--ink);
+        }
+
+        .paragraph strong {
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .paragraph em {
+            font-style: italic;
+            color: var(--accent-green);
+        }
+
+        /* ===== SKILL LIST ===== */
+        .skill-list {
+            list-style: none;
+            margin: 18px 0;
+        }
+
+        .skill-list li {
+            margin-bottom: 8px;
+            padding-left: 28px;
+            position: relative;
+            font-size: 17px;
+        }
+
+        .skill-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent-orange);
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* ===== HIGHLIGHT BOX ===== */
+        .highlight-box {
+            background: rgba(74, 144, 226, 0.08);
+            border-left: 4px solid var(--accent-blue);
+            padding: 18px;
+            margin: 20px 0;
+            border-radius: 2px;
+            transform: rotate(0.5deg);
+            font-size: 17px;
+            line-height: 1.8;
+        }
+
+        .highlight-box strong {
+            color: var(--accent-blue);
+        }
+
+        /* ===== NUMBERED STEPS ===== */
+        .steps-container {
+            margin: 20px 0;
+        }
+
+        .step {
+            display: flex;
+            margin-bottom: 16px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            font-family: 'Caveat', cursive;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-orange);
+            min-width: 45px;
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        .step-text {
+            flex: 1;
+            font-size: 16px;
+            line-height: 1.7;
+            padding-left: 10px;
+            border-left: 2px solid var(--blue-line);
+            padding-bottom: 8px;
+        }
+
+        /* ===== PROTOTYPE DEMO ===== */
+        .demo-section {
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .demo-frame {
+            width: 100%;
+            max-width: 550px;
+            height: 260px;
+            border: 3px solid var(--ink);
+            background: white;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+            transform: rotate(-2.5deg);
+            box-shadow: 4px 10px 25px rgba(0, 0, 0, 0.18),
+                        inset 0 0 0 1px rgba(74, 144, 226, 0.2);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+            cursor: pointer;
+        }
+
+        .demo-frame:hover {
+            transform: rotate(-1.8deg) scale(1.025);
+            box-shadow: 6px 15px 35px rgba(0, 0, 0, 0.22),
+                        inset 0 0 0 1px rgba(74, 144, 226, 0.3);
+        }
+
+        .demo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .demo-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
+            font-size: 16px;
+            color: #888;
+            font-family: 'Patrick Hand', cursive;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .demo-arrow {
+            position: absolute;
+            top: 50%;
+            right: -90px;
+            width: 100px;
+            height: 100px;
+            transform: translateY(-50%);
+            opacity: 0.9;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .demo-arrow svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .demo-label {
+            font-size: 16px;
+            color: var(--accent-blue);
+            margin-top: 12px;
+            font-style: italic;
+            transform: rotate(0.5deg);
+        }
+
+        /* ===== TIMELINE / GSoC EXPERIENCE ===== */
+        .experience-item {
+            margin-bottom: 28px;
+            padding-left: 0;
+            position: relative;
+        }
+
+        .experience-title {
+            font-family: 'Caveat', cursive;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-orange);
+            margin-bottom: 8px;
+        }
+
+        .experience-desc {
+            font-size: 16px;
+            line-height: 1.75;
+            color: var(--ink);
+        }
+
+        /* ===== AVAILABILITY BOX ===== */
+        .availability-box {
+            background: rgba(212, 132, 92, 0.08);
+            border: 2px dashed var(--accent-orange);
+            padding: 18px;
+            margin: 20px 0;
+            border-radius: 2px;
+            transform: rotate(-0.5deg);
+        }
+
+        .availability-box strong {
+            color: var(--accent-orange);
+            font-size: 18px;
+        }
+
+        /* ===== CONCLUSION ===== */
+        .conclusion-section {
+            background: rgba(61, 90, 61, 0.08);
+            border-left: 4px solid var(--accent-green);
+            padding: 22px;
+            margin-top: 50px;
+            border-radius: 2px;
+            font-size: 17px;
+            line-height: 1.85;
+            transform: rotate(0.3deg);
+        }
+
+        .conclusion-section strong {
+            color: var(--accent-green);
+        }
+
+        /* ===== DECORATIVE ELEMENTS ===== */
+        .doodle-icon {
+            display: inline-block;
+            margin-left: 8px;
+            opacity: 0.8;
+            font-size: 24px;
+        }
+
+        .pen-mark {
+            position: absolute;
+            opacity: 0.12;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .pen-mark-1 {
+            top: 350px;
+            right: 80px;
+            font-size: 90px;
+            color: var(--blue-line);
+            transform: rotate(15deg);
+        }
+
+        .pen-mark-2 {
+            bottom: 400px;
+            left: 30px;
+            font-size: 70px;
+            color: var(--accent-orange);
+            transform: rotate(-25deg);
+        }
+
+        .pen-mark-3 {
+            top: 1200px;
+            right: 150px;
+            font-size: 60px;
+            color: var(--accent-green);
+            transform: rotate(10deg);
+        }
+
+        .hand-arrow {
+            position: absolute;
+            font-size: 28px;
+            opacity: 0.5;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-25px) rotate(-1deg);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotate(-0.7deg);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: rotate(-20deg) scaleX(-1) translateY(0); }
+            50% { transform: rotate(-20deg) scaleX(-1) translateY(-8px); }
+        }
+
+        @keyframes bounceLeft {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            50% { transform: translateX(-8px) translateY(4px); }
+        }
+
+        /* ===== REDUCED MOTION ===== */
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .notebook-page {
+                padding: 40px 50px 50px 60px;
+            }
+
+            .main-title {
+                font-size: 48px;
+            }
+
+            h2 {
+                font-size: 36px;
+            }
+
+            h3 {
+                font-size: 24px;
+            }
+
+            .paragraph, .step-text {
+                font-size: 16px;
+            }
+
+            .demo-frame {
+                height: 220px;
+            }
+
+            .pen-mark {
+                opacity: 0.07;
+            }
+        }
+
+        /* ===== SELECTION ===== */
+        ::selection {
+            background: var(--blue-line);
+            color: white;
+        }
+
+        /* ===== EXPLORE LINKS SECTION ===== */
+        .explore-section {
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 2px dotted var(--blue-line);
+        }
+
+        .explore-section h2 {
+            margin-top: 0;
+        }
+
+        .links-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .links-list li {
+            position: relative;
+        }
+
+        .links-list a {
+            font-size: 18px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            border-bottom: 2px solid var(--accent-blue);
+            padding-bottom: 2px;
+            transition: all 0.3s ease;
+            position: relative;
+            font-weight: 600;
+            font-family: 'Indie Flower', cursive;
+        }
+
+        .links-list a::before {
+            content: '→ ';
+            opacity: 0;
+            margin-right: 4px;
+            transition: opacity 0.3s ease;
+        }
+
+        .links-list a:hover {
+            color: var(--accent-orange);
+            border-bottom-color: var(--accent-orange);
+            transform: translateX(4px);
+        }
+
+        .links-list a:hover::before {
+            opacity: 1;
+        }
+
+        /* ===== LINKS ===== */
+        a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            border-bottom: 1px solid var(--accent-blue);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        a:hover {
+            color: var(--accent-orange);
+            border-bottom-color: var(--accent-orange);
+        }
+    </style>
+</head>
+<body>
+    <div class="notebook-page">
+        <div class="notebook-content">
+            <!-- Decorative pen marks -->
+            <div class="pen-mark pen-mark-1">✏️</div>
+            <div class="pen-mark pen-mark-2">~</div>
+            <div class="pen-mark pen-mark-3">⌒</div>
+
+            <!-- ===== TITLE SECTION ===== -->
+            <div class="section title-section">
+                <div class="main-title">Wayback Change Explorer</div>
+                <div class="main-title" style="font-size: 52px; color: var(--accent-orange); margin-bottom: 20px;">GSoC Proposal</div>
+                
+                <div class="subtitle-meta">Nishil Hoogar</div>
+                <div class="subtitle-meta" style="color: var(--ink); font-size: 18px;">Software Engineer | Product-focused Developer</div>
+                
+                <div class="title-description">
+                    I have been using the Wayback Machine since middle school and would love the opportunity to contribute to the tools that help preserve and explore the history of the web.
+                </div>
+            </div>
+
+            <!-- ===== ABOUT ME ===== -->
+            <div class="section">
+                <h2>About Me <span class="doodle-icon"></span></h2>
+                
+                <div class="paragraph">
+                    My name is <strong>Nishil</strong>, and I'm a <strong>Software Engineer</strong> passionate about building real products and tools that solve meaningful problems. I enjoy the entire product development cycle — from idea to implementation to user feedback.
+                </div>
+
+                <div class="paragraph">
+                    My experience spans across:
+                </div>
+
+                <ul class="skill-list">
+                    <li>Web development (React, JavaScript, HTML/CSS)</li>
+                    <li>UI/UX design and prototyping</li>
+                    <li>Chrome extension development</li>
+                    <li>WordPress plugin development</li>
+                    <li>Basic ML / AI experimentation</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <strong>Most importantly:</strong> I am very willing to learn new technologies and adapt my approach when solving problems. I view challenges as opportunities to grow and expand my skill set.
+                </div>
+            </div>
+
+            <!-- ===== WAYBACK MACHINE CONNECTION ===== -->
+            <div class="section">
+                <h2>My Connection to the Wayback Machine <span class="doodle-icon"></span></h2>
+                
+                <div class="paragraph">
+                    I have been using the <strong>Wayback Machine for many years</strong>. I started exploring it during <strong>middle school</strong>, and I was immediately fascinated by the ability to view historical versions of websites. It felt like a <strong>time machine for the internet</strong>.
+                </div>
+
+                <div class="paragraph">
+                    Whether I was researching how a company's website evolved, comparing old web designs, or exploring the history of a product, the Wayback Machine was always there as an incredible resource. Contributing to this project is <strong>personally meaningful to me</strong> because I would be working on tools that have inspired my curiosity for years.
+                </div>
+            </div>
+
+            <!-- ===== PROJECT IDEA ===== -->
+            <div class="section">
+                <h2>Project Idea <span class="doodle-icon"></span></h2>
+                
+                <div class="paragraph">
+                    <strong>Wayback Change Explorer</strong> — a new comparison mode for the Wayback Machine that focuses on <strong>structural differences between snapshots</strong>.
+                </div>
+
+                <div class="paragraph">
+                    The Wayback Machine currently provides a comparison tool that highlights <strong>text that has been added or removed</strong>. My idea introduces a <strong>third complementary comparison mode</strong> that focuses on something different: <strong>structural changes</strong>.
+                </div>
+
+                <div class="paragraph">
+                    Instead of comparing individual words, this system compares <strong>page sections and headings</strong> to detect:
+                </div>
+
+                <ul class="skill-list">
+                    <li>Added sections</li>
+                    <li>Removed sections</li>
+                    <li>Potentially modified sections</li>
+                </ul>
+
+                <div class="paragraph">
+                    This provides a <strong>high-level overview of how a page evolved over time</strong>, complementing the existing text diff and visual comparison tools.
+                </div>
+            </div>
+
+            <!-- ===== WHY THIS IS VALUABLE ===== -->
+            <div class="section">
+                <h2>Why This Idea Is Valuable <span class="doodle-icon"></span></h2>
+                
+                <h3>1. Structural Understanding</h3>
+                <div class="paragraph">
+                    Text diffs can become noisy for large pages. When a page has hundreds of paragraphs, finding the meaningful structural changes becomes difficult. A structural comparison quickly shows <strong>which topics appeared or disappeared</strong>, cutting through the noise.
+                </div>
+
+                <h3>2. Research Potential</h3>
+                <div class="paragraph">
+                    For <strong>Wikipedia pages</strong>, structural changes reveal rich insights:
+                </div>
+                <ul class="skill-list">
+                    <li>New topics emerging and gaining prominence</li>
+                    <li>Sections removed as topics become less relevant</li>
+                    <li>Shifts in how information is organized and prioritized</li>
+                </ul>
+                <div class="paragraph">
+                    Researchers could use these signals to investigate <strong>how knowledge about topics evolves over time</strong> — a powerful tool for studying internet culture, information dissemination, and historical events.
+                </div>
+
+                <h3>3. Complement to Existing Tools</h3>
+                <div class="paragraph">
+                    This tool does <strong>not replace the current comparison system</strong>. Instead, it becomes a <strong>third analysis option</strong>:
+                </div>
+                <div class="steps-container">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">Text diff comparison (word-level changes)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">Visual page comparison (side-by-side rendering)</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">Structural section comparison (topic-level changes)</div>
+                    </div>
+                </div>
+                <div class="paragraph">
+                    Each tool answers a different question. Together, they provide a more complete picture of how content has changed.
+                </div>
+            </div>
+
+            <!-- ===== PROTOTYPE DEMO ===== -->
+            <div class="section">
+                <h2>Prototype Demonstration <span class="doodle-icon"></span></h2>
+                
+                <div class="demo-section">
+                    <div class="demo-frame" onclick="window.open('https://wayback-change-explorer.vercel.app', '_blank')">
+                        <img src="change-explorer.png" alt="Wayback Change Explorer Prototype">
+                    </div>
+                    <div class="demo-label">↪ Click to view the live prototype</div>
+                </div>
+
+                <div class="paragraph">
+                    I have already built a working prototype demonstrating the core functionality. The prototype shows how the system extracts sections from Wikipedia pages and highlights structural changes between two snapshots.
+                </div>
+            </div>
+
+            <!-- ===== GSOC 2025 EXPERIENCE ===== -->
+            <div class="section">
+                <h2>Google Summer of Code 2025 – FOSSASIA <span class="doodle-icon"></span></h2>
+                
+                <div class="paragraph">
+                    I previously contributed during <strong>Google Summer of Code 2025 with FOSSASIA</strong>. This experience taught me how to work effectively in open-source communities and deliver meaningful contributions.
+                </div>
+
+                <h3>BadgeMagic</h3>
+                <div class="experience-desc">
+                    <strong>UI design and mockups</strong> for badge customization features, <strong>feature discussions</strong> with the team, <strong>iterative development</strong> of user interfaces, and <strong>design research</strong> to understand user needs.
+                </div>
+
+                <h3>WPFA Event Plugin</h3>
+                <div class="experience-desc">
+                    Designed and implemented a comprehensive <strong>plugin architecture</strong> for managing events. Built features including <strong>event templates</strong>, <strong>event management system</strong>, <strong>speaker management</strong>, <strong>admin dashboard</strong>, and <strong>landing pages</strong>.
+                </div>
+
+                <h3>Repository Improvements</h3>
+                <div class="experience-desc">
+                    Worked on <strong>repository restructuring</strong>, <strong>standardizing directory structures</strong>, <strong>improving maintainability</strong>, <strong>cleaning duplicated templates</strong>, and <strong>aligning with WordPress best practices</strong>.
+                </div>
+            </div>
+
+            <!-- ===== COLLABORATION & AVAILABILITY ===== -->
+            <div class="section">
+                <h2>Collaboration & Availability <span class="doodle-icon"></span></h2>
+                
+                <div class="paragraph">
+                    I genuinely enjoy collaborating and improving ideas through feedback. I believe that the best work comes from open communication and iterative refinement.
+                </div>
+
+                <div class="availability-box">
+                    <strong>Synchronous meetings:</strong> Easiest for me on <strong>Fridays and Saturdays</strong> due to varying weekday work shifts.
+                </div>
+
+                <div class="paragraph">
+                    However, I'm <strong>very active asynchronously</strong> through:
+                </div>
+                <ul class="skill-list">
+                    <li>GitHub issues and discussions</li>
+                    <li>Pull requests with detailed explanations</li>
+                    <li>Written discussions and design documents</li>
+                    <li>Documentation updates and knowledge sharing</li>
+                </ul>
+            </div>
+
+            <!-- ===== CONCLUSION ===== -->
+            <div class="section">
+                <div class="conclusion-section">
+                    <strong>The Wayback Machine is one of the most important tools for preserving the history of the internet.</strong> Having used it for years, contributing to it would be extremely meaningful to me.
+                    <br><br>
+                    I would love the opportunity to work with the community and develop tools that help people better explore how the web evolves over time. I'm excited about the possibility of building something that serves researchers, historians, and curious internet explorers.
+                </div>
+            </div>
+
+            <!-- ===== EXPLORE SECTION ===== -->
+            <div class="section explore-section">
+                <h2>Explore <span class="doodle-icon"></span></h2>
+                <ul class="links-list">
+                    <li><a href="https://wayback-change-explorer.vercel.app" target="_blank">Live Demo</a></li>
+                    <li><a href="https://github.com/NishilHoogar" target="_blank">My GitHub</a></li>
+                    <li><a href="https://nishilhoogar.github.io/Portfolio-v1/" target="_blank">My Portfolio</a></li>
+                    <li><a href="https://www.linkedin.com/in/nishilh" target="_blank">My LinkedIn</a></li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
